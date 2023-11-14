@@ -89,6 +89,15 @@ ENV PATH="/root/bin/:/root/.local/bin/:${PATH}" \
 RUN curl -Lo /root/bin/coursier https://git.io/coursier-cli \
     && chmod +x /root/bin/coursier
 
+# https://www.ruby-lang.org/en/downloads/
+ARG RUBY=ruby-3.2.2
+RUN curl https://cache.ruby-lang.org/pub/ruby/3.2/$RUBY.tar.gz | tar -xz
+WORKDIR /root/bin/$RUBY
+RUN CC=clang ./configure --prefix=/root/bin/ruby && make -j && make install
+ENV PATH="/root/bin/ruby/bin:${PATH}"
+WORKDIR /root/bin
+RUN rm -rf $RUBY
+
 # https://nodejs.org/en/download/current/
 ARG NODE=v20.8.1
 RUN curl \
