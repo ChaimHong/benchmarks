@@ -4,6 +4,8 @@
 case ARGV[0]
 when 'versions'
   exec('./versions.rb')
+when 'versions-s'
+  exec('./versions-simple.rb')
 when 'shell'
   Dir.chdir('/src')
   exec('bash')
@@ -27,6 +29,9 @@ when 'matmul'
   exec('make run')
 when 'primes'
   Dir.chdir('/src/primes')
+  exec('make run')
+when 'simple'
+  Dir.chdir('/src/simple')
   exec('make run')
 end
 

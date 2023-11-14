@@ -1,0 +1,123 @@
+FROM debian:testing
+
+ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y dirmngr ca-certificates gnupg \
+    && gpg --homedir /tmp --no-default-keyring --keyring /usr/share/keyrings/mono-official-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF \
+    && echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] https://download.mono-project.com/repo/debian stable-buster main" > /etc/apt/sources.list.d/mono-official-stable.list
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    chezscheme \
+    clang-16 \
+    cmake \
+    cpanminus \
+    curl \
+    elixir \
+    gcc-13 \
+    gccgo-13 \
+    gdc-13 \
+    git \
+    lbzip2 \
+    libblas-dev \
+    libc++-16-dev \
+    libc++abi-16-dev \
+    libevent-dev \
+    libgmp-dev \
+    libjq-dev \
+    libjson-c-dev \
+    libjson-glib-dev \
+    liblapack-dev \
+    liblapacke-dev \
+    liblua5.4-dev \
+    libncurses-dev \
+    libncursesw6 \
+    libnuma-dev \
+    libomp-16-dev \
+    libonig-dev \
+    libopenblas-dev \
+    libopenblas64-dev \
+    libopenmpi-dev \
+    libpcre3-dev \
+    libpython3-stdlib \
+    libpython3.11-stdlib \
+    libssl-dev \
+    libtool \
+    libtool-bin \
+    libxml2 \
+    libyajl-dev \
+    libyaml-dev \
+    locales \
+    locales-all \
+    lua5.4 \
+    mono-devel \
+    nuget \
+    opam \
+    php \
+    pipx \
+    powercap-utils \
+    python3 \
+    python3-numpy \
+    python3-pip \
+    python3-ujson \
+    tcl \
+    tcllib \
+    valac \
+    vim \
+    xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 10 \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 10 \
+    && update-alternatives --install /usr/bin/gdc gdc /usr/bin/gdc-13 10 \
+    && update-alternatives --install /usr/bin/gccgo gccgo /usr/bin/gccgo-13 10 \
+    && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-16 10 \
+    && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-16 10 \
+    && nuget update -self \
+    && useradd -m dev
+
+RUN mkdir /root/bin
+WORKDIR /root/bin
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+ENV PATH="/root/bin/:/root/.local/bin/:${PATH}" \
+    JQ_LIB_DIR=/usr/lib/x86_64-linux-gnu/ \
+    LC_ALL=en_US.UTF-8 \
+    LANG=en_US.UTF-8 \
+    LANGUAGE=en_US.UTF-8
+
+RUN curl -Lo /root/bin/coursier https://git.io/coursier-cli \
+    && chmod +x /root/bin/coursier
+
+# https://nodejs.org/en/download/current/
+ARG NODE=v20.8.1
+RUN curl \
+    https://nodejs.org/dist/$NODE/node-$NODE-linux-x64.tar.xz \
+    | tar -xJ
+ENV PATH="/root/bin/node-$NODE-linux-x64/bin/:${PATH}"
+
+# https://golang.org/dl/
+RUN curl -L \
+    https://go.dev/dl/go1.21.3.linux-amd64.tar.gz \
+    | tar -xz
+ENV PATH="/root/bin/go/bin/:${PATH}"
+
+# Using more stable LuaJIT, used in Alpine and other distros
+# https://github.com/openresty/luajit2/tags
+RUN export VERSION=2.1-20231006 \
+    && curl -L \
+    https://github.com/openresty/luajit2/archive/refs/tags/v$VERSION.tar.gz \
+    | tar -xz \
+    && make -C luajit2-$VERSION -j \
+    && make -C luajit2-$VERSION install PREFIX=/root/bin/luajit \
+    && rm -rf luajit2-$VERSION
+ENV PATH="/root/bin/luajit/bin:${PATH}"
+
+ARG SCRIPTS_VER=unknown
+COPY *.rb ./
+
+RUN ./versions.rb
+
+ENTRYPOINT ["./run.rb"]
+
+RUN cat /etc/os-release
