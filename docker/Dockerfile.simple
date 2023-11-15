@@ -125,7 +125,7 @@ ENV PATH="/root/bin/luajit/bin:${PATH}"
 ARG SCRIPTS_VER=unknown
 COPY *.rb ./
 
-RUN ./versions.rb
+RUN ./versions-simple.rb
 
 ENTRYPOINT ["./run.rb"]
 
